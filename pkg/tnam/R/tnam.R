@@ -5,12 +5,11 @@
 .onAttach <- function(libname, pkgname) {
   desc  <- packageDescription(pkgname, libname)
   packageStartupMessage(
+    'Package:  tnam\n', 
     'Version:  ', desc$Version, '\n', 
     'Date:     ', desc$Date, '\n', 
-    'Authors:  Philip Leifeld (University of Konstanz)\n',
-    '          Skyler J. Cranmer (The Ohio State University)',
-    '\n\nPlease cite the xergm package in your publications ', 
-    '-- see citation("xergm").'
+    'Authors:  Philip Leifeld (Eawag (ETH) and University of Bern)\n',
+    '          Skyler J. Cranmer (The Ohio State University)\n'
   )
 }
 
