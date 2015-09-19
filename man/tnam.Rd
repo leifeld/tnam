@@ -32,33 +32,33 @@ The \code{tnamdata} function accepts a formula (like in the \code{tnam} function
 # like sex or religion, (2) their peers' delinquency levels, (3) 
 # their own and their peers' past delinquency behavior, and (4) 
 # their structural position in the network. See ?knecht for 
-# details on the dataset.
+# details on the dataset. Before estimating the model, all data 
+# should be labeled with the names of the nodes such that tnam 
+# is able to merge the information on multiple nodes across time 
+# points.
 
-library("statnet")
-library("xergm")
+library("tnam")
 data("knecht")
 
 # prepare the dependent variable y
 delinquency <- as.data.frame(delinquency)
 rownames(delinquency) <- letters
 
-# replace structural zeros (denoted as 10) and add node labels
+# replace structural zeros (denoted as 10) and add row labels
 friendship[[3]][friendship[[3]] == 10] <- NA
 friendship[[4]][friendship[[4]] == 10] <- NA
 for (i in 1:length(friendship)) {
   rownames(friendship[[i]]) <- letters
-  colnames(friendship[[i]]) <- letters
 }
 
-# prepare the sex variable (can be a list of vectors)
-sex <- as.numeric(demographics$sex)
+# prepare the covariates sex and religion
+sex <- demographics$sex
 names(sex) <- letters
-sex <- list(sex, sex, sex, sex)
-
-# prepare the religion variable (can also be a data frame)
-rel <- as.numeric(demographics$religion)
-rel <- data.frame(rel, rel, rel, rel)
-rownames(rel) <- letters
+sex <- list(t1 = sex, t2 = sex, t3 = sex, t4 = sex)
+religion <- demographics$religion
+names(religion) <- letters
+religion <- list(t1 = religion, t2 = religion, t3 = religion, 
+    t4 = religion)
 
 # Estimate the model. The first term is the sex of the respondent, 
 # the second term is the religion of the respondent, the third 
@@ -80,7 +80,7 @@ rownames(rel) <- letters
 model1 <- tnam(
     delinquency ~ 
     covariate(sex, coefname = "sex") + 
-    covariate(rel, coefname = "religion") + 
+    covariate(religion, coefname = "religion") + 
     covariate(delinquency, lag = 1, exponent = 1) + 
     netlag(delinquency, friendship) + 
     netlag(delinquency, friendship, pathdist = 2, decay = 1) + 
