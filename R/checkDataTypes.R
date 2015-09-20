@@ -141,8 +141,9 @@ checkDataTypes <- function(y, networks = NULL, lag = 0) {
         } else {  # try to adjust dimensions of 'y' and 'networks'
           warning(paste0("Dimensions of 'y' and 'networks' do not match at ", 
               "t=", i, ". Trying to adjust them mutually."))
-          y[[i]] <- adjust(y[[i]], networks[[i]], add = FALSE)
-          networks[[i]] <- adjust(networks[[i]], y[[i]], add = FALSE)
+          y[[i]] <- xergm.common::adjust(y[[i]], networks[[i]], add = FALSE)
+          networks[[i]] <- xergm.common::adjust(networks[[i]], y[[i]], 
+              add = FALSE)
         }
       }
       # complain if labels do not match
