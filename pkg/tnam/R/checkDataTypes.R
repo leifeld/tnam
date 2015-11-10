@@ -132,7 +132,7 @@ checkDataTypes <- function(y, networks = NULL, lag = 0) {
     for (i in 1:length(y)) {
       # compare dimensions; mutually adjust if necessary
       if (length(y[[i]]) != nrow(networks[[i]])) {
-        if (is.null(rownames(networks))) {
+        if (is.null(rownames(networks[[i]]))) {
           stop(paste0("The dimensions of 'y' and 'networks' differ at t=", 
               i, ", and the network (matrix) does not contain row names."))
         } else if (is.null(names(y[[i]]))) {
