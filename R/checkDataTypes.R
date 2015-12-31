@@ -139,7 +139,7 @@ checkDataTypes <- function(y, networks = NULL, lag = 0) {
           stop(paste0("The dimensions of 'y' and 'networks' differ at t=", 
               i, ", and the elements in 'y' are not named."))
         } else {  # try to adjust dimensions of 'y' and 'networks'
-          warning(paste0("Dimensions of 'y' and 'networks' do not match at ", 
+          message(paste0("Dimensions of 'y' and 'networks' do not match at ", 
               "t=", i, ". Trying to adjust them mutually."))
           y[[i]] <- xergm.common::adjust(y[[i]], networks[[i]], add = FALSE)
           networks[[i]] <- xergm.common::adjust(networks[[i]], y[[i]], 

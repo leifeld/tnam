@@ -1,6 +1,6 @@
 Package: tnam
-Version: 1.6
-Date: 2015-12-09
+Version: 1.6.1
+Date: 2015-12-31
 Title: Temporal Network Autocorrelation Models (TNAM)
 Authors@R: c(person(given = "Philip", family = "Leifeld", email = "philip.leifeld@eawag.ch", role = c("aut", "cre")), person(given = c("Skyler", "J."), family = "Cranmer", email = "cranmer.12@osu.edu", role = "ctb"))
 Description: Temporal and cross-sectional network autocorrelation models (TNAM).
