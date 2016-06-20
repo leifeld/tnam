@@ -9,7 +9,7 @@
     'Package:  tnam\n', 
     'Version:  ', desc$Version, '\n', 
     'Date:     ', desc$Date, '\n', 
-    'Authors:  Philip Leifeld (Eawag and University of Bern)\n',
+    'Authors:  Philip Leifeld (University of Glasgow)\n',
     '          Skyler J. Cranmer (The Ohio State University)\n'
   )
 }
