@@ -240,4 +240,3 @@ checkDataTypes <- function(y, networks = NULL, lag = 0) {
   
   return(objects)
 }
-

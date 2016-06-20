@@ -7,7 +7,7 @@
 The \pkg{tnam} package implements temporal and cross-sectional network autocorrelation models (TNAM).
 }
 \author{
-Philip Leifeld (\url{http://www.philipleifeld.de})
+Philip Leifeld (\url{http://www.philipleifeld.com})
 
 Skyler J. Cranmer (\url{http://www.skylercranmer.net})
 }
