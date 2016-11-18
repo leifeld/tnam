@@ -8,6 +8,6 @@ URL: http://github.com/leifeld/tnam
 Depends: R (>= 2.14.0), xergm.common (>= 1.7.4)
 Imports: methods, utils, stats, network, sna, igraph, vegan, lme4 (>= 1.0), Rcpp (>= 0.11.0)
 Suggests: xergm, texreg, statnet
-Remotes: github::leifeld/xergm/xergm.common
+Remotes: github::leifeld/xergm.common
 License: GPL (>= 2)
 LinkingTo: Rcpp
