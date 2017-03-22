@@ -4,17 +4,16 @@ r:
   - devel
   - release
 
-sudo: required
+sudo: false
 
 cache: packages
+
+r_check_args: --as-cran
 
 env: _R_CHECK_FORCE_SUGGESTS_=false
 
 r_github_packages:
   - leifeld/xergm.common
-  - leifeld/xergm
-  - leifeld/btergm
-  - matthewjdenny/GERGM
 
 notifications:
   email:
