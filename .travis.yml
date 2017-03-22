@@ -10,6 +10,8 @@ cache: packages
 
 r_check_args: --as-cran
 
+env: _R_CHECK_FORCE_SUGGESTS_=false
+
 r_github_packages:
   - leifeld/xergm.common
 
