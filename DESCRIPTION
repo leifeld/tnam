@@ -1,11 +1,11 @@
 Package: tnam
 Version: 1.6.3
-Date: 2016-11-18
+Date: 2017-03-30
 Title: Temporal Network Autocorrelation Models (TNAM)
 Authors@R: c(person(given = "Philip", family = "Leifeld", email = "philip.leifeld@glasgow.ac.uk", role = c("aut", "cre")), person(given = c("Skyler", "J."), family = "Cranmer", email = "cranmer.12@osu.edu", role = "ctb"))
 Description: Temporal and cross-sectional network autocorrelation models (TNAM).
 URL: http://github.com/leifeld/tnam
-Depends: R (>= 2.14.0), xergm.common (>= 1.7.4)
+Depends: R (>= 2.14.0), xergm.common (>= 1.7.7)
 Imports: methods, utils, stats, network, sna, igraph, vegan, lme4 (>= 1.0), Rcpp (>= 0.11.0)
 Suggests: texreg
 License: GPL (>= 2)
