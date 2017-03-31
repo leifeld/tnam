@@ -11,5 +11,5 @@ citEntry(entry="Manual",
   year = year,
   note = vers,
   textVersion = paste("Leifeld, Philip and Skyler J. Cranmer (", year, "). tnam. Temporal Network Autocorrelation Models. ", vers, ".", sep = ""),
-  url = "http://CRAN.R-project.org/package=tnam"
+  url = "https://cran.r-project.org/package=tnam"
 )

@@ -1,4 +1,4 @@
-useDynLib(tnam)
+useDynLib(tnam, .registration = TRUE)
 import("methods")
 import("utils")
 import("network")
