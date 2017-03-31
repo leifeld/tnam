@@ -72,3 +72,8 @@ NumericVector netLagCppLoop(IntegerMatrix mat, IntegerMatrix pdistmat,
   
   return resultVector;
 }
+
+void R_init_tnam(DllInfo* info) {
+	R_registerRoutines(info, NULL, NULL, NULL, NULL);
+	R_useDynamicSymbols(info, TRUE);
+}
