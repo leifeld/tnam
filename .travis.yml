@@ -18,6 +18,6 @@ r_github_packages:
 notifications:
   email:
     recipients:
-      - philip.leifeld@glasgow.ac.uk
+      - philip.leifeld@essex.ac.uk
     on_success: change
-on_failure: change
+    on_failure: change
