@@ -1,9 +1,8 @@
 # This file contains all TNAM model terms (in alphabetical order).
 
-
-# outcome variable of other actors * their similarity on another attribute
+# ENDOGENOUS: outcome variable of other actors * their similarity on another attribute
 attribsim <- function(y, attribute, match = FALSE, lag = 0, 
-    normalization = c("no", "row", "column"), center = FALSE, coefname = NULL) {
+                      normalization = c("no", "row", "column"), center = FALSE, coefname = NULL) {
   
   # get data in the right shape
   objects <- checkDataTypes(y = y, networks = NULL, lag = lag)
@@ -97,7 +96,7 @@ attribsim <- function(y, attribute, match = FALSE, lag = 0,
   
   # aggregate and return data
   dat <- data.frame(attribsim, time = time, node = objects$nodelabels, 
-      response = response)
+                    response = response)
   dat$node <- as.character(dat$node)
   colnames(dat)[1] <- label
   attributes(dat)$lag <- lag
@@ -105,11 +104,11 @@ attribsim <- function(y, attribute, match = FALSE, lag = 0,
 }
 
 
-# model term which indicates whether an actor has a certain degree centrality
+#EXOGENOUS:  model term which indicates whether an actor has a certain degree centrality
 centrality <- function(networks, type = c("indegree", "outdegree", "freeman", 
-    "betweenness", "flow", "closeness", "eigenvector", "information", "load", 
-    "bonpow"), directed = TRUE, lag = 0, rescale = FALSE, center = FALSE, 
-    coefname = NULL, ...) {
+                                          "betweenness", "flow", "closeness", "eigenvector", "information", "load", 
+                                          "bonpow"), directed = TRUE, lag = 0, rescale = FALSE, center = FALSE, 
+                       coefname = NULL, ...) {
   
   # check validity of arguments and prepare data
   if (is.null(directed) || !is.logical(directed)) {
@@ -128,34 +127,34 @@ centrality <- function(networks, type = c("indegree", "outdegree", "freeman",
   for (i in 1:objects$time.steps) {
     if (type[1] == "indegree") {
       cent <- degree(objects$networks[[i]], gmode = gmode, cmode = "indegree", 
-          rescale = rescale, ...)
+                     rescale = rescale, ...)
     } else if (type[1] == "outdegree") {
       cent <- degree(objects$networks[[i]], gmode = gmode, cmode = "outdegree", 
-          rescale = rescale, ...)
+                     rescale = rescale, ...)
     } else if (type[1] == "freeman") {
       cent <- degree(objects$networks[[i]], gmode = gmode, cmode = "freeman", 
-          rescale = rescale, ...)
+                     rescale = rescale, ...)
     } else if (type[1] == "betweenness") {
       cent <- betweenness(objects$networks[[i]], gmode = gmode, 
-          rescale = rescale, ...)
+                          rescale = rescale, ...)
     } else if (type[1] == "flow") {
       cent <- flowbet(objects$networks[[i]], gmode = gmode, rescale = rescale, 
-          ...)
+                      ...)
     } else if (type[1] == "closeness") {
       cent <- closeness(objects$networks[[i]], gmode = gmode, 
-          rescale = rescale, ...)
+                        rescale = rescale, ...)
     } else if (type[1] == "eigenvector") {
       cent <- evcent(objects$networks[[i]], gmode = gmode, rescale = rescale, 
-          ...)
+                     ...)
     } else if (type[1] == "information") {
       cent <- infocent(objects$networks[[i]], gmode = gmode, 
-          rescale = rescale, ...)
+                       rescale = rescale, ...)
     } else if (type[1] == "load") {
       cent <- loadcent(objects$networks[[i]], gmode = gmode, 
-          rescale = rescale, ...)
+                       rescale = rescale, ...)
     } else if (type[1] == "bonpow") {
       cent <- bonpow(objects$networks[[i]], gmode = gmode, 
-          rescale = rescale, tol = 1e-20, ...)
+                     rescale = rescale, tol = 1e-20, ...)
     } else {
       stop("'type' argument was not recognized.")
     }
@@ -197,10 +196,10 @@ centrality <- function(networks, type = c("indegree", "outdegree", "freeman",
 }
 
 
-# spatial lag for k-clique co-members
+#ENDOGENOUS: spatial lag for k-clique co-members
 cliquelag <- function(y, networks, k.min = 2, k.max = Inf, directed = TRUE, 
-    lag = 0, normalization = c("no", "row", "column"), center = FALSE, 
-    coefname = NULL) {
+                      lag = 0, normalization = c("no", "row", "column"), center = FALSE, 
+                      coefname = NULL) {
   
   # check arguments
   if (!is.numeric(lag)) {
@@ -234,12 +233,12 @@ cliquelag <- function(y, networks, k.min = 2, k.max = Inf, directed = TRUE,
     objects$y[[k]][is.na(objects$y[[k]])] <- 0  # correct NAs in y
     
     # retrieve clique comembership matrices by clique size
-    w3d <- clique.census(objects$networks[[k]], mode = mode, 
-        clique.comembership = "bysize", tabulate.by.vertex = FALSE, 
-        enumerate = FALSE)$clique.comemb
+    w3d <- sna::clique.census(objects$networks[[k]], mode = mode, 
+                              clique.comembership = "bysize", tabulate.by.vertex = FALSE, 
+                              enumerate = FALSE)$clique.comemb
     k.max <- min(c(k.max, dim(w3d)[1]))
     w <- matrix(0, nrow = nrow(objects$networks[[k]]), 
-        ncol = ncol(objects$networks[[k]]))
+                ncol = ncol(objects$networks[[k]]))
     for (i in k.min:k.max) {  # sum up three-cliques, four-cliques etc.
       w <- w + w3d[i, , ]
     }
@@ -267,55 +266,57 @@ cliquelag <- function(y, networks, k.min = 2, k.max = Inf, directed = TRUE,
         }
       }
     }
-    results[[k]] <- w %*% objects$y[[k]]
+    results[[k]] <- w #%*% objects$y[[k]]
   }
   
-  # convert list of results into data frame and add time and response columns
-  response <- numeric()
-  time <- numeric()
-  cliquelag <- numeric()
-  for (i in 1:objects$time.steps) {
-    time <- c(time, rep(i, objects$n[[i]]))
-    response <- c(response, objects$y[[i]])
-    if (center == TRUE) {
-      results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
-    }
-    cliquelag <- c(cliquelag, results[[i]])
-  }
-  
-  # create the label
-  if (length(lag) == 1 && lag == 0) {
-    laglabel <- ""
-  } else {
-    laglabel <- paste0(".lag", paste(lag, collapse = "."))
-  }
-  if (normalization[1] == "row") {
-    normlabel <- ".rownorm"
-  } else if (normalization[1] == "column" || normalization[1] == "col") {
-    normlabel <- ".colnorm"
-  } else {
-    normlabel <- ""
-  }
-  klabel <- paste0(".k.", k.min, ".", k.max)
-  if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
-    coeflabel <- ""
-  } else {
-    coeflabel <- paste0(".", coefname)
-  }
-  label <- paste0("cliquelag", coeflabel, klabel, laglabel, normlabel)
-  
-  dat <- data.frame(cliquelag, time = time, node = objects$nodelabels, 
-      response = response)
-  dat$node <- as.character(dat$node)
-  colnames(dat)[1] <- label
-  attributes(dat)$lag <- lag
-  return(dat)
+  #CTRL + Shift + C
+  # # convert list of results into data frame and add time and response columns
+  # response <- numeric()
+  # time <- numeric()
+  # cliquelag <- numeric()
+  # for (i in 1:objects$time.steps) {
+  #   time <- c(time, rep(i, objects$n[[i]]))
+  #   response <- c(response, objects$y[[i]])
+  #   if (center == TRUE) {
+  #     results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
+  #   }
+  #   cliquelag <- c(cliquelag, results[[i]])
+  # }
+  # 
+  # # create the label
+  # if (length(lag) == 1 && lag == 0) {
+  #   laglabel <- ""
+  # } else {
+  #   laglabel <- paste0(".lag", paste(lag, collapse = "."))
+  # }
+  # if (normalization[1] == "row") {
+  #   normlabel <- ".rownorm"
+  # } else if (normalization[1] == "column" || normalization[1] == "col") {
+  #   normlabel <- ".colnorm"
+  # } else {
+  #   normlabel <- ""
+  # }
+  # klabel <- paste0(".k.", k.min, ".", k.max)
+  # if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
+  #   coeflabel <- ""
+  # } else {
+  #   coeflabel <- paste0(".", coefname)
+  # }
+  # label <- paste0("cliquelag", coeflabel, klabel, laglabel, normlabel)
+  # 
+  # dat <- data.frame(cliquelag, time = time, node = objects$nodelabels, 
+  #                   response = response)
+  # dat$node <- as.character(dat$node)
+  # colnames(dat)[1] <- label
+  # attributes(dat)$lag <- lag
+  # return(dat)
+  return(results)
 }
 
 
-# local clustering coefficient
+#EXDOGENOUS: local clustering coefficient
 clustering <- function(networks, directed = TRUE, lag = 0, center = FALSE, 
-    coefname = NULL, ...) {
+                       coefname = NULL, ...) {
   
   # prepare arguments and data
   if (directed == TRUE) {
@@ -369,9 +370,9 @@ clustering <- function(networks, directed = TRUE, lag = 0, center = FALSE,
 }
 
 
-# simple covariate or temporally lagged covariate
+#EXOGENOUS: simple covariate or temporally lagged covariate
 covariate <- function(y, lag = 0, exponent = 1, center = FALSE, 
-    coefname = NULL) {
+                      coefname = NULL) {
   
   # check validity of arguments
   if (is.null(lag) || !is.numeric(lag) || floor(lag) != lag) {
@@ -392,7 +393,7 @@ covariate <- function(y, lag = 0, exponent = 1, center = FALSE,
     response <- c(response, objects$y[[i]])
     if (center == TRUE) {
       result <- objects$y[[i]]^exponent - mean(objects$y[[i]]^exponent, 
-          na.rm = TRUE)
+                                               na.rm = TRUE)
     } else {
       result <- objects$y[[i]]^exponent
     }
@@ -412,7 +413,7 @@ covariate <- function(y, lag = 0, exponent = 1, center = FALSE,
   }
   label <- paste0("covariate", coeflabel, laglabel)
   dat <- data.frame(y, time = time, node = objects$nodelabels, 
-      response = response)
+                    response = response)
   dat$node <- as.character(dat$node)
   colnames(dat)[1] <- label
   attributes(dat)$lag <- lag
@@ -420,10 +421,10 @@ covariate <- function(y, lag = 0, exponent = 1, center = FALSE,
 }
 
 
-# model term which indicates whether an actor has a certain degree centrality
+#EXOGENOUS: model term which indicates whether an actor has a certain degree centrality
 degreedummy <- function(networks, deg = 0, type = c("indegree", "outdegree", 
-    "freeman"), reverse = FALSE, directed = TRUE, lag = 0, center = FALSE, 
-    coefname = NULL, ...) {
+                                                    "freeman"), reverse = FALSE, directed = TRUE, lag = 0, center = FALSE, 
+                        coefname = NULL, ...) {
   
   # check validity of arguments and prepare data
   if (is.null(directed) || !is.logical(directed)) {
@@ -549,11 +550,11 @@ interact <- function(x, y, lag = 0, center = FALSE, coefname = NULL) {
     stop("'lag' must be a single integer value.")
   } else if (attributes(x)$lag != 0 || attributes(x)$lag != 0) {
     message(paste("Using the 'lag' argument from the interaction term, not", 
-        "from the 'x' or 'y' arguments handed over to the interaction term."))
+                  "from the 'x' or 'y' arguments handed over to the interaction term."))
   }
   if (length(lag) > 1) {
     warning(paste("Interaction term: several 'lag' arguments are provided.", 
-        "Only the first one is retained."))
+                  "Only the first one is retained."))
   }
   if (is.null(attributes(dat)$lag)) {
     attributes(dat)$lag <- 0
@@ -562,10 +563,10 @@ interact <- function(x, y, lag = 0, center = FALSE, coefname = NULL) {
 }
 
 
-# spatial network lag term with optional temporal lag and path distance decay
+#ENDOGENOUS: spatial network lag term with optional temporal lag and path distance decay
 netlag <- function(y, networks, lag = 0, pathdist = 1, 
-    decay = pathdist^-1, normalization = c("no", "row", "column", "complete"), 
-    reciprocal = FALSE, center = FALSE, coefname = NULL, ...) {
+                   decay = pathdist^-1, normalization = c("no", "row", "column", "complete"), 
+                   reciprocal = FALSE, center = FALSE, coefname = NULL, ...) {
   
   # check validity of arguments
   if (!is.numeric(pathdist)) {
@@ -587,63 +588,62 @@ netlag <- function(y, networks, lag = 0, pathdist = 1,
   # do the computations
   results <- list()  # will contain vectors of results for each time step
   for (k in 1:objects$time.steps) {
-    pdistmat <- geodist(objects$networks[[k]], ...)$gdist  # path dist mat.
-    results[[k]] <- suppressWarnings(netLagCppLoop(objects$networks[[k]], 
-        pdistmat, pathdist, decay, objects$y[[k]], normalization[1], 
-        reciprocal))  # netlag loop in C++
+    pdistmat <- sna::geodist(objects$networks[[k]], ...)$gdist  # path dist mat.
+    results[[k]] <- pdistmat #suppressWarnings(netLagCppLoop(objects$networks[[k]], pdistmat, pathdist, decay, objects$y[[k]], normalization[1], reciprocal))  # netlag loop in C++
   }
   
   # convert list of results into data frame and add time and response columns
-  response <- numeric()
-  time <- numeric()
-  spatlag <- numeric()
-  for (i in 1:objects$time.steps) {
-    time <- c(time, rep(i, objects$n[[i]]))
-    response <- c(response, objects$y[[i]])
-    if (center == TRUE) {
-      results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
-    }
-    spatlag <- c(spatlag, results[[i]])
-  }
-  
-  if (length(lag) == 1 && lag == 0) {
-    laglabel <- ""
-  } else {
-    laglabel <- paste0(".lag", paste(lag, collapse = "."))
-  }
-  pathdistlabel <- paste0(".pathdist", paste(pathdist, collapse = "."))
-  if (any(decay != 1)) {
-    decaylabel <- paste0(".decay", paste(decay, collapse = "."))
-  } else {
-    decaylabel <- ""
-  }
-  if (normalization[1] == "row") {
-    normlabel <- ".rownorm"
-  } else if (normalization[1] == "column" || normalization[1] == "col") {
-    normlabel <- ".colnorm"
-  } else {
-    normlabel <- ""
-  }
-  if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
-    coeflabel <- ""
-  } else {
-    coeflabel <- paste0(".", coefname)
-  }
-  label <- paste0("netlag", coeflabel, laglabel, pathdistlabel, decaylabel, 
-      normlabel)
-  dat <- data.frame(spatlag, time = time, node = objects$nodelabels, 
-      response = response)
-  dat$node <- as.character(dat$node)
-  colnames(dat)[1] <- label
-  attributes(dat)$lag <- lag
-  return(dat)
+  # response <- numeric()
+  # time <- numeric()
+  # spatlag <- numeric()
+  # for (i in 1:objects$time.steps) {
+  #   time <- c(time, rep(i, objects$n[[i]]))
+  #   response <- c(response, objects$y[[i]])
+  #   if (center == TRUE) {
+  #     results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
+  #   }
+  #   spatlag <- c(spatlag, results[[i]])
+  # }
+  # 
+  # if (length(lag) == 1 && lag == 0) {
+  #   laglabel <- ""
+  # } else {
+  #   laglabel <- paste0(".lag", paste(lag, collapse = "."))
+  # }
+  # pathdistlabel <- paste0(".pathdist", paste(pathdist, collapse = "."))
+  # if (any(decay != 1)) {
+  #   decaylabel <- paste0(".decay", paste(decay, collapse = "."))
+  # } else {
+  #   decaylabel <- ""
+  # }
+  # if (normalization[1] == "row") {
+  #   normlabel <- ".rownorm"
+  # } else if (normalization[1] == "column" || normalization[1] == "col") {
+  #   normlabel <- ".colnorm"
+  # } else {
+  #   normlabel <- ""
+  # }
+  # if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
+  #   coeflabel <- ""
+  # } else {
+  #   coeflabel <- paste0(".", coefname)
+  # }
+  # label <- paste0("netlag", coeflabel, laglabel, pathdistlabel, decaylabel, 
+  #                 normlabel)
+  # dat <- data.frame(spatlag, time = time, node = objects$nodelabels, 
+  #                   response = response)
+  # dat$node <- as.character(dat$node)
+  # colnames(dat)[1] <- label
+  # attributes(dat)$lag <- lag
+  # return(dat)
+  return(results) #contains infinities-- does that matter for Bayes Nam
 }
 
 
-# structural similarity term with optional temporal lag
+#ENDOGENOUS:  structural similarity term with optional temporal lag
 structsim <- function(y, networks, lag = 0, method = c("euclidean", 
-    "minkowski", "jaccard", "binary", "hamming"), center = FALSE, 
-    coefname = NULL, ...) {
+                                                       "minkowski", "jaccard", "binary", "hamming"), center = FALSE, 
+                      coefname = NULL, ...) {
   
   # get data in the right shape
   objects <- checkDataTypes(y = y, networks = networks, lag = lag)
@@ -661,11 +661,11 @@ structsim <- function(y, networks, lag = 0, method = c("euclidean",
       s <- 1 - d
     } else if (method[1] == "jaccard") {
       d <- as.matrix(vegdist(objects$networks[[k]], method = "jaccard", 
-          na.rm = TRUE, ...))
+                             na.rm = TRUE, ...))
       s <- 1 - d
     } else if (method[1] == "hamming") {
       d <- sedist(objects$networks[[k]], method = "hamming", ...) / 
-          nrow(objects$networks[[k]])  # standardize to [0; 1]
+        nrow(objects$networks[[k]])  # standardize to [0; 1]
       s <- 1 - d
     } else {
       stop("'method' argument was not recognized.")
@@ -673,52 +673,64 @@ structsim <- function(y, networks, lag = 0, method = c("euclidean",
     diag(s) <- 0
     rm(d)
     
+    #print(s)
     # apply structural similarities as weight matrix
     s[is.na(s)] <- 0
-    result <- s %*% objects$y[[k]]
-    results[[k]] <- result
+    #result <- s %*% objects$y[[k]]
+    results[[k]] <- s #result
   }
   
   # convert list of results into data frame and add time and response columns
-  response <- numeric()
-  time <- numeric()
-  structsim <- numeric()
-  for (i in 1:objects$time.steps) {
-    time <- c(time, rep(i, objects$n[[i]]))
-    response <- c(response, objects$y[[i]])
-    if (center == TRUE) {
-      results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
-    }
-    structsim <- c(structsim, results[[i]])
+  # response <- numeric()
+  # time <- numeric()
+  # structsim <- numeric()
+  # for (i in 1:objects$time.steps) {
+  #   time <- c(time, rep(i, objects$n[[i]]))
+  #   response <- c(response, objects$y[[i]])
+  #   if (center == TRUE) {
+  #     results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
+  #   }
+  #   structsim <- c(structsim, results[[i]])
+  # }
+  # 
+  # # aggregate label
+  # if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
+  #   coeflabel <- ""
+  # } else {
+  #   coeflabel <- paste0(".", coefname)
+  # }
+  # if (lag == 0) {
+  #   laglabel <- ""
+  # } else {
+  #   laglabel <- paste0(".lag", paste(lag, collapse = "."))
+  # }
+  # label <- paste0("structsim", coeflabel, laglabel, ".", method[1])
+  # 
+  # # aggregate and return data
+  # dat <- data.frame(structsim, time = time, node = objects$nodelabels, 
+  #                   response = response)
+  # dat$node <- as.character(dat$node)
+  # colnames(dat)[1] <- label
+  # attributes(dat)$lag <- lag
+  # return(dat)
+  return(results)
+}
+
+# W matricies as inputs 
+W <- function(data) { 
+  if (length(class(data)) == 1 && class(data) == "list") {
+    mtrx <- matrix(unlist(data), ncol = dim(data$t1)[1], nrow = dim(data$t1)[1]) 
   }
-  
-  # aggregate label
-  if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
-    coeflabel <- ""
-  } else {
-    coeflabel <- paste0(".", coefname)
+  else if ((length(class(data)) == 2) && (class(data)[1] == "matrix") && (class(data)[2] == "array")) {
+    mtrx <- matrix(unlist(data), ncol = dim(data)[1], nrow = dim(data)[1]) 
   }
-  if (lag == 0) {
-    laglabel <- ""
-  } else {
-    laglabel <- paste0(".lag", paste(lag, collapse = "."))
-  }
-  label <- paste0("structsim", coeflabel, laglabel, ".", method[1])
-  
-  # aggregate and return data
-  dat <- data.frame(structsim, time = time, node = objects$nodelabels, 
-      response = response)
-  dat$node <- as.character(dat$node)
-  colnames(dat)[1] <- label
-  attributes(dat)$lag <- lag
-  return(dat)
+  return(mtrx)
 }
 
 
-# spatial weighted lag with row and column normalization; for weighted matrices
+#ENDOGENOUS: spatial weighted lag with row and column normalization; for weighted matrices
 weightlag <- function(y, networks, lag = 0, normalization = c("no", "row", 
-    "column"), center = FALSE, coefname = NULL) {
-  
+                                                              "column"), center = FALSE, coefname = NULL) {
   # check arguments
   if (!is.numeric(lag)) {
     stop("The 'lag' argument must be an integer value or vector of integers.")
@@ -754,48 +766,50 @@ weightlag <- function(y, networks, lag = 0, normalization = c("no", "row",
         }
       }
     }
-    result <- objects$networks[[k]] %*% objects$y[[k]]
-    results[[k]] <- result
+    #result <- objects$networks[[k]] %*% objects$y[[k]]
+    results[[k]] <- objects$networks[[k]] #result
   }
   
   # convert list of results into data frame and add time and response columns
-  response <- numeric()
-  time <- numeric()
-  spatlag <- numeric()
-  for (i in 1:objects$time.steps) {
-    time <- c(time, rep(i, objects$n[[i]]))
-    response <- c(response, objects$y[[i]])
-    if (center == TRUE) {
-      results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
-    }
-    spatlag <- c(spatlag, results[[i]])
-  }
-  
-  # create the label
-  if (length(lag) == 1 && lag == 0) {
-    laglabel <- ""
-  } else {
-    laglabel <- paste0(".lag", paste(lag, collapse = "."))
-  }
-  if (normalization[1] == "row") {
-    normlabel <- ".rownorm"
-  } else if (normalization[1] == "column" || normalization[1] == "col") {
-    normlabel <- ".colnorm"
-  } else {
-    normlabel <- ""
-  }
-  if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
-    coeflabel <- ""
-  } else {
-    coeflabel <- paste0(".", coefname)
-  }
-  label <- paste0("weightlag", coeflabel, laglabel, normlabel)
-  
-  dat <- data.frame(spatlag, time = time, node = objects$nodelabels, 
-      response = response)
-  dat$node <- as.character(dat$node)
-  colnames(dat)[1] <- label
-  attributes(dat)$lag <- lag
-  return(dat)
+  # response <- numeric()
+  # time <- numeric()
+  # spatlag <- numeric()
+  # for (i in 1:objects$time.steps) {
+  #   time <- c(time, rep(i, objects$n[[i]]))
+  #   response <- c(response, objects$y[[i]])
+  #   if (center == TRUE) {
+  #     results[[i]] <- results[[i]] - mean(results[[i]], na.rm = TRUE)
+  #   }
+  #   spatlag <- c(spatlag, results[[i]])
+  # }
+  # 
+  # # create the label
+  # if (length(lag) == 1 && lag == 0) {
+  #   laglabel <- ""
+  # } else {
+  #   laglabel <- paste0(".lag", paste(lag, collapse = "."))
+  # }
+  # if (normalization[1] == "row") {
+  #   normlabel <- ".rownorm"
+  # } else if (normalization[1] == "column" || normalization[1] == "col") {
+  #   normlabel <- ".colnorm"
+  # } else {
+  #   normlabel <- ""
+  # }
+  # if (is.null(coefname) || !is.character(coefname) || length(coefname) > 1) {
+  #   coeflabel <- ""
+  # } else {
+  #   coeflabel <- paste0(".", coefname)
+  # }
+  # label <- paste0("weightlag", coeflabel, laglabel, normlabel)
+  # 
+  # dat <- data.frame(spatlag, time = time, node = objects$nodelabels, 
+  #                   response = response)
+  # dat$node <- as.character(dat$node)
+  # colnames(dat)[1] <- label
+  # attributes(dat)$lag <- lag
+  # return(dat)
+  return(results)
 }
+
 
