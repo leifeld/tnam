@@ -8,7 +8,7 @@ library(matrixcalc)
 library(mvtnorm) 
 library(rARPACK)
 library(tmvtnorm)
-library(tnam) # need this and then I've been overwriting the old functions with the updated functions 
+#library(tnam) # need this and then I've been overwriting the old functions with the updated functions 
 
 ############################################## DATA
 data("knecht")
@@ -62,7 +62,7 @@ eps=rnorm(50,0,sigma)                                     #Draw the disturbances
 y=c(solve(diag(50)-rho[1]*W1-rho[2]*W2)%*%(X%*%beta+eps)) #Draw the response vector y
 mu.prior=c(0,0); Sigma.prior=50*diag(2)                   #Set non-informative priors
 
-X[,1]
+#X[,1]
 
 nam_formula <- y ~  
   covariate(X[,1], coefname = "intercept") +
@@ -72,11 +72,11 @@ nam_formula <- y ~
   W(W1) + 
   W(W2)
 
-class(list(W1))
-class(friendship1)
+#class(list(W1))
+#class(friendship1)
 test1<- tnamdata_mod(nam_formula) ##data is in correct format now for betnam 
 
-fitted<- tnam(formula= nam_formula) 
+fitted<- tnam(formula= nam_formula, mu.prior= mu.prior, Sigma.prior= Sigma.prior) 
 
 #look @ distributions of coeffeicents
 

@@ -176,31 +176,16 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
   o
 }
 ################################################################################
+# functions in.space.2.rsd,in.space.2, and in.space.R check if (rho, Beta) in theta_rho x R -- page 205, step 3 first bullet point. 
 
-# Bayesian estimation for len(W) > 1
-nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
-  ###
-  # function which checks is (rho, Beta) in theta_rho x R 
-  in.space.2.rsd=function(rho,W.list,R){ 
-    inout=0
-    if(sum(rho>=0)>1.5){if(sum(rho)<1){inout=1}else{inout=0}}
-    else{
-      mf=c(1,rho[2]/rho[1]); W=W.list[[1]]+mf[2]*W.list[[2]]
-      if(rho[1]>0){
-        rho1b=1/Re(eigs(W,1,which="LR",opts=list(retvec=FALSE))$values) 
-        if(identical(rho1b,complex(0))>0){rho1b=1/max(Re(eigen(W,only.values=TRUE)$values))}
-      }
-      else{
-        rho1b=1/Re(eigs(W,1,which="SR",opts=list(retvec=FALSE))$values) 
-        if(identical(rho1b,complex(0))>0){rho1b=1/min(Re(eigen(W,only.values=TRUE)$values))}
-      }
-      if(sum(abs(rho)<=abs(mf*rho1b))==2){inout=1}
-    }
-    return(inout)
+# CASE 1 when len(W)= 2 and is row standardized.
+in.space.2.rsd=function(rho,W.list,R){ 
+  inout=0
+  if(sum(rho>=0)>1.5){
+    if(sum(rho)<1){inout=1}
+    else{inout=0}
   }
-  ###
-  in.space.2=function(rho,W.list,R){ 
-    inout=0
+  else{
     mf=c(1,rho[2]/rho[1]); W=W.list[[1]]+mf[2]*W.list[[2]]
     if(rho[1]>0){
       rho1b=1/Re(eigs(W,1,which="LR",opts=list(retvec=FALSE))$values) 
@@ -211,82 +196,102 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
       if(identical(rho1b,complex(0))>0){rho1b=1/min(Re(eigen(W,only.values=TRUE)$values))}
     }
     if(sum(abs(rho)<=abs(mf*rho1b))==2){inout=1}
-    return(inout)
   }
-  ###
-  in.space.R=function(rho,W.list,R){ 
-    inout=0
-    alpha=NULL; prod.cos=NULL; mf=NULL; ss=NULL
-    alpha[1]=atan2(rho[2],rho[1])
-    prod.cos[1:2]=rep(1,2)
-    mf[1:2]=c(1,tan(alpha[1]))
-    ss[1]=rho[1]**2; ss[2]=ss[1]+rho[2]**2
-    W=mf[1]*W.list[[1]]+mf[2]*W.list[[2]]
-    for(i in 3:R){
-      ss[i]=ss[i-1]+rho[i]**2
-      if(rho[i]>0){alpha[i-1]=acos(sqrt(ss[i-1]/ss[i]))}
-      else{alpha[i-1]=-acos(sqrt(ss[i-1]/ss[i]))}
-      prod.cos[i]=prod.cos[i-1]*cos(alpha[i-2])
-      mf[i]=tan(alpha[i-1])/prod.cos[i]
-      W=W+mf[i]*W.list[[i]]
-    }
-    if(rho[1]>0){
-      rho1b=1/Re(eigs(W,1,which="LR",opts=list(retvec=FALSE))$values) 
-      if(identical(rho1b,complex(0))>0){rho1b=1/max(Re(eigen(W,only.values=TRUE)$values))}
-    } 
-    else{
-      rho1b=1/Re(eigs(W,1,which="SR",opts=list(retvec=FALSE))$values) 
-      if(identical(rho1b,complex(0))>0){rho1b=1/min(Re(eigen(W,only.values=TRUE)$values))}
-    }
-    if(sum(abs(rho)<abs(mf*rho1b))==R){inout=1}
-    return(inout)
+  return(inout)
+}
+
+# CASE 2 when len(W)= 2 and is not row standardized.
+in.space.2=function(rho,W.list,R){ 
+  inout=0
+  mf=c(1,rho[2]/rho[1]); W=W.list[[1]]+mf[2]*W.list[[2]]
+  if(rho[1]>0){
+    rho1b=1/Re(eigs(W,1,which="LR",opts=list(retvec=FALSE))$values) 
+    if(identical(rho1b,complex(0))>0){rho1b=1/max(Re(eigen(W,only.values=TRUE)$values))}
   }
-  ###
-  
-  # metropolis hastings function, rho0, beta1.  returns (rho,beta) pair, ln(det) and Ay ----- page 205 of Dittrich (2020)
-  # also see Equation 10, page 180 of Dittrich (2020) 
-  # "The conditional posterior in equation (10) does not have a well-known form and cannot be directly sampled from.
-  # Instead, we use the Metropolis- Hastings algorithm to generate draws from the conditional posterior for rho, Beta1 "
-  
-  # "The density in equation (10) can be approximated by an (R+1)-variate normal candidate-generating density for rho, Beta1 that is tailored
-  # to the conditional posterior for rho, Beta1. 
-  
-  # R = length(W.list) 
-  # g = length(y)
-  mh.rho.R.beta0=function(mu.cand,Sigma.cand,R,W.list,Id,y,Wy,lndet.curr,s2.curr,X.beta.tilde.curr,g,rss,val.curr,mu.prior,Sigma.prior,Ay.curr,FUN=in.space) {
-    inout=0
-    while(inout<1){
-      val.cand=c(rmvnorm(1,mean=mu.cand,sigma=Sigma.cand)) # R+1-variate density 
-      rho.cand=val.cand[-(R+1)]
-      beta0.cand=val.cand[R+1]
-      if(in.space(rho.cand,W.list,R)>0){inout=1} # check to see if in parameter space theta_rho x R (reals), pg 204. in.space is inputted into function and is one of (in.space.2.rsd, in.space.2, in.space.2.R) defined above. 
-      # keep sampling until in parameter space, then you've found a rho and beta0 candidate 
-      } 
-    rho.cand.W.list=list()
-    for(i in 1:R) { 
-      rho.cand.W.list[[i]]=rho.cand[i]*W.list[[i]]
-      }
-    A.cand=Id-Reduce("+", rho.cand.W.list)
-    lndet.cand=determinant(A.cand)$modulus[1]
-    Ay.cand=y-colSums((rho.cand*t(Wy)))
-    if(log(runif(1))< #accept based on uniform distribution.
-       lndet.cand-lndet.curr  
-       -(1/(2*s2.curr))*(sum(Ay.cand**2)-2*beta0.cand*sum(Ay.cand)-2*sum(Ay.cand*X.beta.tilde.curr)+g*beta0.cand**2+2*beta0.cand*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)-rss)   
-       +dmvnorm(rho.cand,mean=mu.prior,sigma=Sigma.prior,log=T)-dmvnorm(val.curr[-(R+1)],mean=mu.prior,sigma=Sigma.prior,log=T)
-       +dmvnorm(val.curr,mean=mu.cand,sigma=Sigma.cand,log=T)-dmvnorm(val.cand,mean=mu.cand,sigma=Sigma.cand,log=T)
-    )
-    {val=val.cand;lndet=lndet.cand;Ay=Ay.cand}
-    else
-    {val=val.curr;lndet=lndet.curr;Ay=Ay.curr}
-    parlist=list(val,lndet,Ay)
-    names(parlist)=c("value","lndet","Ay")
-    return(parlist)
-  }  
-  ###
-  
-  # start of function rather than defining functions wihtin the function. 
-  if(is.matrix(W.list)>0){nam.Bayes.1(y,X,W.list,mu.prior,Sigma.prior,N=N,burnin=burnin)}
   else{
+    rho1b=1/Re(eigs(W,1,which="SR",opts=list(retvec=FALSE))$values) 
+    if(identical(rho1b,complex(0))>0){rho1b=1/min(Re(eigen(W,only.values=TRUE)$values))}
+  }
+  if(sum(abs(rho)<=abs(mf*rho1b))==2){inout=1}
+  return(inout)
+}
+
+# CASE 3 when len(W) > 2 
+in.space.R=function(rho,W.list,R){ 
+  inout=0
+  alpha=NULL; prod.cos=NULL; mf=NULL; ss=NULL
+  alpha[1]=atan2(rho[2],rho[1])
+  prod.cos[1:2]=rep(1,2)
+  mf[1:2]=c(1,tan(alpha[1]))
+  ss[1]=rho[1]**2; ss[2]=ss[1]+rho[2]**2
+  W=mf[1]*W.list[[1]]+mf[2]*W.list[[2]]
+  for(i in 3:R){
+    ss[i]=ss[i-1]+rho[i]**2
+    if(rho[i]>0){alpha[i-1]=acos(sqrt(ss[i-1]/ss[i]))}
+    else{alpha[i-1]=-acos(sqrt(ss[i-1]/ss[i]))}
+    prod.cos[i]=prod.cos[i-1]*cos(alpha[i-2])
+    mf[i]=tan(alpha[i-1])/prod.cos[i]
+    W=W+mf[i]*W.list[[i]]
+  }
+  if(rho[1]>0){
+    rho1b=1/Re(eigs(W,1,which="LR",opts=list(retvec=FALSE))$values) 
+    if(identical(rho1b,complex(0))>0){rho1b=1/max(Re(eigen(W,only.values=TRUE)$values))}
+  } 
+  else{
+    rho1b=1/Re(eigs(W,1,which="SR",opts=list(retvec=FALSE))$values) 
+    if(identical(rho1b,complex(0))>0){rho1b=1/min(Re(eigen(W,only.values=TRUE)$values))}
+  }
+  if(sum(abs(rho)<abs(mf*rho1b))==R){inout=1}
+  return(inout)
+}
+
+# metropolis hastings function, rho0, beta1.  returns (rho,beta) pair, ln(det) and Ay ----- page 205 of Dittrich (2020)
+# also see Equation 10, page 180 of Dittrich (2020) 
+# "The conditional posterior in equation (10) does not have a well-known form and cannot be directly sampled from.
+# Instead, we use the Metropolis- Hastings algorithm to generate draws from the conditional posterior for rho, Beta1 "
+
+# "The density in equation (10) can be approximated by an (R+1)-variate normal candidate-generating density for rho, Beta1 that is tailored
+# to the conditional posterior for rho, Beta1. 
+
+# R = length(W.list) 
+# g = length(y)
+
+mh.rho.R.beta0=function(mu.cand,Sigma.cand,R,W.list,Id,y,Wy,lndet.curr,s2.curr,X.beta.tilde.curr,g,rss,val.curr,mu.prior,Sigma.prior,Ay.curr,FUN=in.space) {
+  inout=0
+  while(inout<1){
+    val.cand=c(rmvnorm(1,mean=mu.cand,sigma=Sigma.cand)) # R+1-variate density 
+    rho.cand=val.cand[-(R+1)]
+    beta0.cand=val.cand[R+1]
+    if(FUN(rho.cand,W.list,R)>0){inout=1} # check to see if in parameter space theta_rho x R (reals), pg 204. FUN =in.space is inputted into function and is one of (in.space.2.rsd, in.space.2, in.space.2.R) defined above. 
+    # keep sampling until in parameter space, then you've found a rho and beta0 candidate 
+  } 
+  rho.cand.W.list=list()
+  for(i in 1:R) { 
+    rho.cand.W.list[[i]]=rho.cand[i]*W.list[[i]]
+  }
+  A.cand=Id-Reduce("+", rho.cand.W.list)
+  lndet.cand=determinant(A.cand)$modulus[1]
+  Ay.cand=y-colSums((rho.cand*t(Wy)))
+  if(log(runif(1))< #accept based on uniform distribution.
+     lndet.cand-lndet.curr  
+     -(1/(2*s2.curr))*(sum(Ay.cand**2)-2*beta0.cand*sum(Ay.cand)-2*sum(Ay.cand*X.beta.tilde.curr)+g*beta0.cand**2+2*beta0.cand*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)-rss)   
+     +dmvnorm(rho.cand,mean=mu.prior,sigma=Sigma.prior,log=T)-dmvnorm(val.curr[-(R+1)],mean=mu.prior,sigma=Sigma.prior,log=T)
+     +dmvnorm(val.curr,mean=mu.cand,sigma=Sigma.cand,log=T)-dmvnorm(val.cand,mean=mu.cand,sigma=Sigma.cand,log=T)
+  )
+  {val=val.cand;lndet=lndet.cand;Ay=Ay.cand}
+  else
+  {val=val.curr;lndet=lndet.curr;Ay=Ay.curr}
+  parlist=list(val,lndet,Ay)
+  names(parlist)=c("value","lndet","Ay")
+  return(parlist)
+}  
+
+##############################################################################
+# Bayesian estimation for len(W) > 1
+nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
+  if(is.matrix(W.list)>0){
+    nam.Bayes.1(y,X,W.list,mu.prior,Sigma.prior,N=N,burnin=burnin)
+  } else {
     if(is.null(y)>0){stop("The response vector 'y' must not be empty.")}
     if(is.vector(y)<1){stop("The response vector 'y' must be a vector.")}
     if(is.numeric(y)<1){stop("The response vector 'y' must be numeric.")}
@@ -306,8 +311,16 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
     if(is.positive.definite(Sigma.prior)<1){stop("The prior covariance matrix 'Sigma.prior' must be positive-definite.")}
     if((N%%1==0)<1|N<1){stop("The number of desired posterior draws 'N' must be a positive integer.")}
     if((burnin%%1==0)<1|burnin<0){stop("The 'burnin' must be a non-negative integer.")}
-    if(R<3){if(max(sapply(W.list,rowSums))==1){in.space=in.space.2.rsd}else{in.space=in.space.2}}else{in.space=in.space.R}
     
+    if(R<3){
+      if(max(sapply(W.list,rowSums))==1){
+        in.space=in.space.2.rsd
+      }else{
+        in.space=in.space.2
+      }
+    }else{
+      in.space=in.space.R
+    }
     Id=diag(g) # identity matrix
     ones=rep(1,g)
     k=ncol(X) 
@@ -320,7 +333,7 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
     tr.WW=matrix(NA,R,R)
     for(i in 1:R){
       Wy[,i]=c(W.list[[i]]%*%y)
-      }
+    }
     sumWy=colSums(Wy)
     yWWy=t(Wy)%*%Wy
     for(i in 1:R){
@@ -341,12 +354,12 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
     rho.curr.W.list=list()
     for(j in 1:R) {
       rho.curr.W.list[[j]]=rho.curr[j]*W.list[[j]]
-      }
+    }
     A.curr=Id-Reduce("+",rho.curr.W.list)
     lndet.curr=determinant(A.curr)$modulus[1]
     Ay.curr=y-colSums((rho.curr*t(Wy)))
-    print(X.tilde)
-    print(beta.tilde.curr)
+    #print(X.tilde)
+    #print(beta.tilde.curr)
     X.beta.tilde.curr=c(X.tilde%*%beta.tilde.curr)
     rss=sum(Ay.curr**2)-2*beta0.curr*sum(Ay.curr)-2*sum(Ay.curr*X.beta.tilde.curr)+g*beta0.curr**2+2*beta0.curr*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)
     
@@ -376,7 +389,7 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
       beta0.curr=draw$value[R+1]
       for(j in 1:R) {
         rho.curr.W.list[[j]]=rho.curr[j]*W.list[[j]]
-        }
+      }
       A.curr=Id-Reduce("+",rho.curr.W.list)
       lndet.curr=draw$lndet
       Ay.curr=draw$Ay
