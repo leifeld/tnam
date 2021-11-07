@@ -53,7 +53,7 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
   XtXi=solve(t(X)%*%X)
   XtXiXt=XtXi%*%t(X)
   M=Id-X%*%XtXiXt
-  Wy=c(W%*%y)
+  Wy=c(W%*%y) #this has to be subsetting Wi*yi
   yWones=sum(Wy)
   yWWy=sum(Wy**2)
   ev=Re(eigen(W)$values)
@@ -96,8 +96,9 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
   
   #MCMC step 
   for (i in 2:(burnin+N)){
+    #loop is here 
     # Draw rho
-    Sigmai11h=yWWy+s2.curr*tau2+s2.curr/sigma.prior**2
+    Sigmai11h=yWWy+s2.curr*tau2+s2.curr/sigma.prior**2 #page 204 
     Sigmaih=rbind(c(Sigmai11h,Sigmai12h),c(Sigmai21h,Sigmai22h))
     Sigmah=(1/(Sigmai11h*Sigmai22h-Sigmai12h**2))*rbind(c(Sigmai22h,-Sigmai12h),c(-Sigmai21h,Sigmai11h))
     Sigma.cand=s2.curr*Sigmah
@@ -374,7 +375,7 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
     fitted.vals[[1]]=c(solve(A.curr)%*%(X.beta.tilde.curr+rnorm(g,mean=0,sd=sqrt(s2.curr))))
     res[[1]]=y-fitted.vals[[1]]
     
-    for (i in 2:(burnin+N)){
+    for (i in 2:(burnin+N)){ #MCMC
       # Draw (rho, beta) pair 
       Sigmai.cand=Sigmaih1/s2.curr+Sigmaih2
       if(is.positive.definite(Sigmai.cand)<1){Sigmai.cand=nearPD(Sigmai.cand)$mat} # if it is NOT positive definite, then compute the nearest positive definite matrix to an approximate one

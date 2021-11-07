@@ -8,8 +8,9 @@ library(matrixcalc)
 library(mvtnorm) 
 library(rARPACK)
 library(tmvtnorm)
-#library(tnam) # need this and then I've been overwriting the old functions with the updated functions 
-
+library(tnam) # need this and then I've been overwriting the old functions with the updated functions 
+library(tidyverse)
+library(igraph)
 ############################################## DATA
 data("knecht")
 #prepare the dependent variable y
@@ -139,7 +140,7 @@ names(ethnicity$t5) <- letters
 intercept_term<- ethnicity[5] # hacky way to do this-- sorry
 
 formula4<- delinquency1 ~ #just one t for now...
-  covariate(intercept_term, coefname = "intercept")+ 
+  covariate(intercept_term, coefname = "intercept") + 
   covariate(sex1, coefname = "sex") + 
   covariate(ethnicity1, coefname = "ethnicity") +
   W(friendship1) + 
@@ -153,5 +154,50 @@ mu.prior4=c(0,0); Sigma.prior4=26*diag(2) #-- attempt to fix X.tilde error
 fitted<- tnam(formula= formula4, mu.prior= mu.prior4, Sigma.prior= Sigma.prior4)
 
 
+#####
+#11.1.21- look @ covariate matrix X more, modify to take in multiple time points t 
+#input data formatting 
+alcohol <- as.data.frame(alcohol)
+rownames(alcohol) <- letters
 
+#generate data which has same format for testing purposes 
+X2=matrix(rnorm(26*3),26,3)  #c(rep(1,26)
+rownames(X2) <- letters
+
+#build formula 
+form2<- delinquency[1:3] ~ covariate(alcohol, coefname = "alc") + covariate(as.data.frame(X2), coefname = "X2") 
+output<- tnamdata_mod_t(form2)
+
+#output looks right, naming convention: covariate.alc_1 for t= 1,  covariate.alc_2 for t =2 ... 
+
+#do we add intercept term?-- might need to add in within the tnam function.
+#can we add covariate which dn vary based on time? 
+#ex:sex 
+form2<- delinquency[1:3] ~ covariate(alcohol, coefname = "alc") +
+                           covariate(as.data.frame(X2), coefname = "X2") + 
+                           covariate(sex[1:3], coefname="sex") 
+
+output<- tnamdata_mod_t(form2)
+#answer: yes! 
+
+#--> right now X is correct for input into tnam but Y is not correct. 
+
+#### 
+# 11.3.21 
+# what about W matrix w/ mult time points t --> basically need to be inputted as c(list(W1), list(W2)), but that can be the straight up W.list
+# ex: friendship matrix 
+form3<- delinquency[1:3] ~ covariate(alcohol, coefname = "alc") +
+  covariate(as.data.frame(X2), coefname = "X2") + 
+  W_t(friendship[1:3]) + 
+  W_t(friendship[1:3])    + 
+  netlag(delinquency[1:3],friendship[1:3]) 
+  #clustering(friendship[1:3]) + 
+  #centrality(friendship[1:3], type = "betweenness") #// unused arguments error 
+  #+ 
+output<- tnamdata_mod_t(form3)
+
+##now W matricies are working correctly, just adding them to giant W.list
+#note: no formal naming occurs-- add in later. 
+  
+  
 

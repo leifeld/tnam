@@ -104,7 +104,7 @@ attribsim <- function(y, attribute, match = FALSE, lag = 0,
 }
 
 
-#EXOGENOUS:  model term which indicates whether an actor has a certain degree centrality
+#EXDOGENOUS:  model term which indicates whether an actor has a certain degree centrality
 centrality <- function(networks, type = c("indegree", "outdegree", "freeman", 
                                           "betweenness", "flow", "closeness", "eigenvector", "information", "load", 
                                           "bonpow"), directed = TRUE, lag = 0, rescale = FALSE, center = FALSE, 
@@ -314,7 +314,7 @@ cliquelag <- function(y, networks, k.min = 2, k.max = Inf, directed = TRUE,
 }
 
 
-#EXDOGENOUS: local clustering coefficient
+#EXOGENOUS: local clustering coefficient
 clustering <- function(networks, directed = TRUE, lag = 0, center = FALSE, 
                        coefname = NULL, ...) {
   
@@ -330,7 +330,7 @@ clustering <- function(networks, directed = TRUE, lag = 0, center = FALSE,
   results <- list()
   for (i in 1:objects$time.steps) {
     # local clustering coefficient from the igraph package
-    g <- graph.adjacency(objects$networks[[i]], mode = mode)
+    g <- igraph::graph.adjacency(objects$networks[[i]], mode = mode)
     trans <- transitivity(g, type = "local", isolates = "zero")
     results[[i]] <- trans
   }
@@ -719,12 +719,17 @@ structsim <- function(y, networks, lag = 0, method = c("euclidean",
 # W matricies as inputs 
 W <- function(data) { 
   if (length(class(data)) == 1 && class(data) == "list") {
-    mtrx <- matrix(unlist(data), ncol = dim(data$t1)[1], nrow = dim(data$t1)[1]) 
+    mtrx <- matrix(unlist(data), ncol = dim(data$W1)[1], nrow = dim(data$t1)[1]) ## W1 not generalizable 
   }
   else if ((length(class(data)) == 2) && (class(data)[1] == "matrix") && (class(data)[2] == "array")) {
     mtrx <- matrix(unlist(data), ncol = dim(data)[1], nrow = dim(data)[1]) 
   }
   return(mtrx)
+}
+
+#going to want to add checks for data type here- just returns the data, which then is incorporated in tnamdata_mod
+W_t <- function(data) { 
+  return(data)
 }
 
 
