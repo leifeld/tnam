@@ -6,7 +6,7 @@
 
 
 ## modifying tnamdata_mod (ha)
-tnamdata_mod_t <- function(formula, center.y = FALSE) {
+tnamdata_mod_t <- function(formula, time_steps, center.y = FALSE) {
   print(formula)
   # parse the formula
   if (class(formula) != "formula") { 
@@ -131,7 +131,6 @@ tnamdata_mod_t <- function(formula, center.y = FALSE) {
   
   ## build actual W.list from W 
   #W.list<- vector()
-  
   temp<- vector()
   if (length(rhs_w)!=0){
     for (i in 1:length(rhs_w)) { 
@@ -147,5 +146,35 @@ tnamdata_mod_t <- function(formula, center.y = FALSE) {
     }
   }
   
-  return (list("y"=response,"X"= X, "W.list"= append(temp,W.list)))
+  dat1 <- data.frame(response = response, time = time, node = node)
+  
+  ##change data structure of y to wide 
+  Y<- pivot_wider(data = dat, 
+              id_cols = node, 
+              names_from = time, 
+              values_from = response)
+  
+  Y<- as.data.frame(Y[,2:ncol(Y)])
+  for (i in 1:time_steps) {
+    names(Y)[i] <- paste("t", i, sep="")
+  }
+
+  #change data structure on W.list to list of lists, label 
+  W.list<- append(temp,W.list)
+  
+  time_steps <- 3
+  lili<- list() ##list of lists
+  first_index<- 0
+  for (i in 1:(length(W.list)/time_steps)) {
+    li <- list() #list 
+    for (j in 1:3) {
+      li[[j]]<- W.list[[first_index + 1]] 
+      first_index = first_index + 1
+      names(li)[j] <- paste("t", j, sep="")
+    }
+    lili[[i]]<- li
+    names(lili)[i]<-paste("W", i, sep="") ##this is where you'd change to have it say friendship, or other W inputs rather than W labelling
+  }
+  
+  return (list("y"=Y,"X"= X, "W.list"= lili))
 }

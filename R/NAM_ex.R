@@ -194,10 +194,10 @@ form3<- delinquency[1:3] ~ covariate(alcohol, coefname = "alc") +
   #clustering(friendship[1:3]) + 
   #centrality(friendship[1:3], type = "betweenness") #// unused arguments error 
   #+ 
-output<- tnamdata_mod_t(form3)
+output<- tnamdata_mod_t(form3, time_steps= 3)
 
 ##now W matricies are working correctly, just adding them to giant W.list
 #note: no formal naming occurs-- add in later. 
-  
-  
+
+
 
