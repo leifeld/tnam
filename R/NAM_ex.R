@@ -1,4 +1,5 @@
 #written by @caramnix on 10.12.21 
+#last modified 11.11.21
 
 #also NEED to run  Estimation.R 
 
@@ -164,9 +165,9 @@ rownames(alcohol) <- letters
 X2=matrix(rnorm(26*3),26,3)  #c(rep(1,26)
 rownames(X2) <- letters
 
-#build formula 
+#build formula --> note as of 11.9.21 this doesn't work *because there is no W matrix... would have to modify-- will press on for now 
 form2<- delinquency[1:3] ~ covariate(alcohol, coefname = "alc") + covariate(as.data.frame(X2), coefname = "X2") 
-output<- tnamdata_mod_t(form2)
+output<- tnamdata_mod_t(form2, time_steps = 3)
 
 #output looks right, naming convention: covariate.alc_1 for t= 1,  covariate.alc_2 for t =2 ... 
 
@@ -198,6 +199,102 @@ output<- tnamdata_mod_t(form3, time_steps= 3)
 
 ##now W matricies are working correctly, just adding them to giant W.list
 #note: no formal naming occurs-- add in later. 
+
+
+## 11.9.21- let's set up an example what will allow us to easily print what exactly is going into the mh functions 
+#build covariate X2
+X2=matrix(rnorm(26*3),26,3)  #c(rep(1,26)
+rownames(X2) <- letters
+
+#build W2 W matrix
+W2<- list(as.numeric(matrix(rbinom(26*26,1,.5),26,26)), as.numeric(matrix(rbinom(26*26,1,.5),26,26)), as.numeric(matrix(rbinom(26*26,1,.5),26,26)))
+names(W2)[[1]] <- "t1"
+names(W2)[[2]] <- "t2"
+names(W2)[[3]] <- "t3"
+
+#build intercept term
+ethnicity$t5 <- rep(1,26) 
+names(ethnicity$t5) <- letters
+intercept_term<- ethnicity[5] # hacky way to do this-- sorry
+intercept_T<-list(intercept_term,intercept_term,intercept_term)
+
+form4<- delinquency[1:3] ~ covariate(as.data.frame(intercept_T), coefname = "intercept") +
+  covariate(alcohol, coefname = "alc") +
+  covariate(as.data.frame(X2), coefname = "X2") + 
+  W_t(friendship[1:3]) + 
+  W_t(W2)
+  
+output<- tnamdata_mod_t(form4, time_steps= 3)
+
+output_long<- tnamdata_mod(form4)
+
+
+mu.prior4=c(0,0); Sigma.prior4=26*diag(2) #-- attempt to fix X.tilde error 
+
+fitted<- tnam(formula= form4, mu.prior= mu.prior4, Sigma.prior= Sigma.prior4, time_steps= 3)
+
+#  Error in nam.Bayes(y = y.in, X = X.in, W.list = W.list.in, Sigma.prior = Sigma.prior,  : 
+#The connectivity matrices 'W' must be numeric.
+# --> the usual checks check for 1 DIM matrix... we have mult dimensions now.
+
+
+
+
+
+## 11.10.21 
+#focusing in on Ay.cand=y-rho.cand*Wy
+
+Ay.cand.function<- function(y_nested, rho.cand, W_nested){
+  a<- vector()
+  for (i in 1:length(W_nested)) {
+    a<- rbind(a, y_nested[[i]]- rho.cand*(W_nested[[i]] %*% y_nested[[i]]))
+  }
+}
+
+W_test<- output$W.list$W1
+y_test<- output$y
+
+##okay so now let's try to run nam.Bayes.1 when W = "1" --> okay not sure why but it only works f there are >2 W matrices otherwise things aren't done correctly -- fix later 
+
+W2<- list(matrix(as.numeric(rbinom(26*26,1,.5)),26,26), matrix(as.numeric(rbinom(26*26,1,.5)),26,26), matrix(as.numeric(rbinom(26*26,1,.5)),26,26))
+names(W2)[[1]] <- "t1"
+names(W2)[[2]] <- "t2"
+names(W2)[[3]] <- "t3"
+
+X3=matrix(rnorm(26*3),26,3)  #c(rep(1,26)
+rownames(X3) <- letters
+
+form5<- delinquency[1:3] ~ covariate(as.data.frame(intercept_T), coefname = "intercept") +
+  covariate(as.data.frame(X2), coefname = "X2") + 
+  covariate(as.data.frame(X3), coefname = "X3") + 
+  W_t(W2) +
+  W_t(friendship[1:3]) 
+
+time_steps= 3
+
+dat<- tnamdata_mod_t(form5, time_steps)
+y_nest_in<- dat$y
+#X.in<- as.matrix(dat$X)
+W_nest_in<- dat$W[[1]]
+
+output_long<- tnamdata_mod(form5)
+y.in<- output_long$y
+X.in<- as.matrix(output_long$X)
+W.list.in<- output_long$W.list[1:3] #this is what we really want 
+
+
+#def'n priors
+mu.prior4=0; Sigma.prior4=26*diag(1)
+
+#modified to feed in both long and wide format! 
+nam.Bayes.1(y=y.in, y_nest= y_nest_in,X= X.in, W.list= W.list.in, W_nest= W_nest_in, mu.prior= mu.prior4,Sigma.prior=Sigma.prior4,N=100,burnin=0)
+  
+#--> error w/ dimensionality for resdiuals which I'm not sure how to fix! 
+
+
+
+
+
 
 
 

@@ -29,7 +29,7 @@ tnamdata_mod <- function(formula, center.y = FALSE) {
   rhs_split<- strsplit(rhs, '[(]')
   exog_list<- c("centrality", "clustering", "degreedummy", "interact", "covariate")
   endog_list<- c("attribsim", "cliquelag", "netlag", "weightlag", "structsim")
-  W_listr<- c("W") #add in term for just adding in full W matrices 
+  W_listr<- c("W", "W_t") #add in term for just adding in full W matrices 
   rhs_exog<- vector()
   rhs_endog<- vector() 
   rhs_w<- vector() 
@@ -135,20 +135,34 @@ tnamdata_mod <- function(formula, center.y = FALSE) {
   
   ## build actual W.list from W 
   #W.list<- vector()
+  # temp<- vector()
+  # for (i in 1:length(rhs_w)) { 
+  #   result <- eval(parse(text = rhs_w[i]))
+  #   temp<- append(temp, list(result))
+  # }
   temp<- vector()
-  for (i in 1:length(rhs_w)) { 
-    result <- eval(parse(text = rhs_w[i]))
-    temp<- append(temp, list(result))
+  if (length(rhs_w)!=0){
+    for (i in 1:length(rhs_w)) { 
+      if ((rhs_w[i]) == "W"){
+        result <- eval(parse(text = rhs_w[i]))
+        temp<- append(temp, list(result))
+      }else { 
+        result <- eval(parse(text = rhs_w[i]))
+        for (i in 1:length(result)) {
+          temp<- append(temp, list(result[[i]]))
+        }
+      }
+    }
   }
   
   return (list("y"=response,"X"= X, "W.list"= append(temp,W.list)))
 }
 
-tnam<- function(formula,mu.prior= NULL, Sigma.prior= NULL, burnin= 1000, N= 1000) { 
-  dat<- tnamdata_mod(formula)
-  y.in<- dat$y
+tnam<- function(formula, time_steps, mu.prior= NULL, Sigma.prior= NULL, burnin= 1000, N= 1000) { 
+  dat<- tnamdata_mod_t(formula, time_steps)
+  y_nest_in<- dat$y
   X.in<- as.matrix(dat$X)
-  W.list.in<- dat$W
+  W_nest_in<- dat$W
   g<- length(W.list.in)
   # change to be able to add uninformative prior for any size later 
   #if (is.null(mu.prior)) { 
@@ -157,7 +171,11 @@ tnam<- function(formula,mu.prior= NULL, Sigma.prior= NULL, burnin= 1000, N= 1000
   #if (is.null(Sigma.prior)) { 
   #  Sigma.prior=50*diag(g) #uninformative prior --> this shouldn't be 50 -- change later 
   #}
-  o<- nam.Bayes(y = y.in, X = X.in, W.list = W.list.in, Sigma.prior = Sigma.prior, mu.prior = mu.prior, N = N, burnin = burnin) 
+  output_long<- tnamdata_mod(formula)
+  y.in<- output_long$y
+  W.list.in<- output_long$W.list
+  
+  o<- nam.Bayes(y = y.in, y_nest= y_nest_in, X = X.in, W.list = W.list.in, W_nest= W_nest_in, Sigma.prior = Sigma.prior, mu.prior = mu.prior, N = N, burnin = burnin) 
   o
 }
 

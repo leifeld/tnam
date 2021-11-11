@@ -3,15 +3,29 @@
 #1. Dittrich D, Leenders RTAJ, Mulder J. Network Autocorrelation Modeling: Bayesian Techniques for Estimating and 
 #Testing Multiple Network Autocorrelations. Sociological Methodology. 2020;50(1):168-214. doi:10.1177/0081175020913899
 
-# commented by @caramnix 
+
+#function for finding Ay.cand with multiple time steps 
+Ay.cand.function<- function(y_nested, rho.cand, W_nested){
+  a<- vector()
+  for (i in 1:length(W_nested)) {
+    a<- rbind(a, y_nested[[i]]- rho.cand*(W_nested[[i]] %*% y_nested[[i]]))
+  }
+  return (a)
+}
 
 # mh.rho.1.beta0 Metropolis Hastings Function for when W = 1 -- see mh.rho.R.beta0 for more thorough comments 
-mh.rho.1.beta0=function(mu.cand,Sigma.cand,lb,ub,y,Wy,ev,lndet.curr,s2.curr,X.beta.tilde.curr,g,rss,val.curr,mu.prior,sigma.prior,Ay.curr) {
+mh.rho.1.beta0=function(mu.cand,Sigma.cand,lb,ub,y,Wy,y_nest, W_nest, ev,lndet.curr,s2.curr,X.beta.tilde.curr,g,rss,val.curr,mu.prior,sigma.prior,Ay.curr) {
   val.cand=c(rtmvnorm(1,mean=mu.cand,sigma=Sigma.cand,lower=c(lb,-Inf),upper=c(ub,Inf))) # R+1-variate density 
   rho.cand=val.cand[1]
   beta0.cand=val.cand[2]
-  Ay.cand=y-rho.cand*Wy
-  lndet.cand=sum(log(1-rho.cand*ev))
+  #Ay.cand=y-rho.cand*Wy
+  Ay.cand= Ay.cand.function(y_nested= y_nest, rho.cand=rho.cand, W_nested=W_nest)
+  #print(Ay.cand)
+  #function goes here 
+
+  #print("log(1-rho.cand*ev)")
+  #print(log(1-rho.cand*ev))
+  lndet.cand=sum(log(1-rho.cand*ev), na.rm = TRUE) #warning: NA's can be generated, okay to just remove??
   if(log(runif(1))<
      lndet.cand-lndet.curr
      -(1/(2*s2.curr))*(sum(Ay.cand**2)-2*beta0.cand*sum(Ay.cand)-2*sum(Ay.cand*X.beta.tilde.curr)+g*beta0.cand**2+2*beta0.cand*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)-rss)
@@ -27,36 +41,37 @@ mh.rho.1.beta0=function(mu.cand,Sigma.cand,lb,ub,y,Wy,ev,lndet.curr,s2.curr,X.be
 }
 ################################################################################
 # Bayesian Estimation when len (W) =1 --> see nam.Bayes() for commented code 
-nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
-  W=as.matrix(W.list)
+nam.Bayes.1= function(y, y_nest,X,W.list,W_nest,mu.prior,Sigma.prior,N=100,burnin=0){
+  W = W.list
+  #W=as.matrix(W.list)
   sigma.prior=Sigma.prior
-  if(is.null(y)>0){stop("The response vector 'y' must not be empty.")}
-  if(is.vector(y)<1){stop("The response vector 'y' must be a vector.")}
-  if(is.numeric(y)<1){stop("The response vector 'y' must be numeric.")}
-  if(is.numeric(X)<1){stop("The covariance matrix 'X' must be numeric.")}
-  if(is.matrix(X)<1){stop("The covariance matrix 'X' must be a matrix.")}
-  if(is.numeric(W)<1){stop("The connectivity matrix must be numeric.")}
-  if(abs(length(y)-nrow(X))>.5){stop("Number of observations in 'X' must match length of 'y'.")}
-  g=length(y) 
-  if(length(unique(g,nrow(W),ncol(W)))>1){stop("Order of the connectivity matrix must match length of 'y'.")}
-  if(sum(is.vector(mu.prior)+length(mu.prior))<2){stop("The prior mean 'mu.prior' must be a scalar.")}
-  if(is.numeric(mu.prior)<1){stop("The prior mean 'mu.prior' must be numeric.")}
-  if(sum(is.vector(sigma.prior)+length(sigma.prior)+as.numeric(sigma.prior>0))<3){stop("The prior standard deviation 'sigma.prior' must be a positive scalar.")}
-  if((N%%1==0)<1|N<1){stop("The number of desired posterior draws 'N' must be a positive integer.")}
-  if((burnin%%1==0)<1|burnin<0){stop("The 'burnin' must be a non-negative integer.")}
   
-  g=length(y)
+  # if(is.null(y)>0){stop("The response vector 'y' must not be empty.")}
+  # if(is.vector(y)<1){stop("The response vector 'y' must be a vector.")}
+  # if(is.numeric(y)<1){stop("The response vector 'y' must be numeric.")}
+  # if(is.numeric(X)<1){stop("The covariance matrix 'X' must be numeric.")}
+  # if(is.matrix(X)<1){stop("The covariance matrix 'X' must be a matrix.")}
+  # if(is.numeric(W)<1){stop("The connectivity matrix must be numeric.")}
+  # if(abs(length(y)-nrow(X))>.5){stop("Number of observations in 'X' must match length of 'y'.")}
+  g=length(y) 
+  # if(length(unique(g,nrow(W),ncol(W)))>1){stop("Order of the connectivity matrix must match length of 'y'.")}
+  # if(sum(is.vector(mu.prior)+length(mu.prior))<2){stop("The prior mean 'mu.prior' must be a scalar.")}
+  # if(is.numeric(mu.prior)<1){stop("The prior mean 'mu.prior' must be numeric.")}
+  # if(sum(is.vector(sigma.prior)+length(sigma.prior)+as.numeric(sigma.prior>0))<3){stop("The prior standard deviation 'sigma.prior' must be a positive scalar.")}
+  # if((N%%1==0)<1|N<1){stop("The number of desired posterior draws 'N' must be a positive integer.")}
+  # if((burnin%%1==0)<1|burnin<0){stop("The 'burnin' must be a non-negative integer.")}
+  
   Id=diag(g)
   ones=rep(1,g)
   k=ncol(X)
-  X.tilde=X[,-1]
+  X.tilde=X[,-1] # X w.o intercept column
   XtXi=solve(t(X)%*%X)
   XtXiXt=XtXi%*%t(X)
   M=Id-X%*%XtXiXt
-  Wy=c(W%*%y) #this has to be subsetting Wi*yi
+  Wy=c(W[[1]]%*%y[1:26]) #this has to be subsetting Wi*yi --> testing purposes 1:26
   yWones=sum(Wy)
   yWWy=sum(Wy**2)
-  ev=Re(eigen(W)$values)
+  ev=Re(eigen(W[[1]])$values) #--> had to be changed
   tau2=sum(ev**2)
   lb=1/min(ev)
   ub=max(ev)
@@ -74,12 +89,12 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
   A.curr=Id
   lndet.curr=0
   Ay.curr=y
-  print("here 4")
-  print(X.tilde)
-  print(beta.tilde.curr)
-  print("here 5")
+  #print("here 4")
+  #print(X.tilde)
+ # print(beta.tilde.curr)
+  print("here 5 + here")
   
-  X.beta.tilde.curr=c(X.tilde%*%beta.tilde.curr)
+  X.beta.tilde.curr=c(X.tilde%*%beta.tilde.curr) #if X only has one covariate --> errors 
   rss=sum(Ay.curr**2)-2*beta0.curr*sum(Ay.curr)-2*sum(Ay.curr*X.beta.tilde.curr)+g*beta0.curr**2+2*beta0.curr*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)
   
   # Create output vectors and matrices
@@ -100,7 +115,7 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
     # Draw rho
     Sigmai11h=yWWy+s2.curr*tau2+s2.curr/sigma.prior**2 #page 204 
     Sigmaih=rbind(c(Sigmai11h,Sigmai12h),c(Sigmai21h,Sigmai22h))
-    Sigmah=(1/(Sigmai11h*Sigmai22h-Sigmai12h**2))*rbind(c(Sigmai22h,-Sigmai12h),c(-Sigmai21h,Sigmai11h))
+    Sigmah=(as.numeric(1/(Sigmai11h*Sigmai22h-Sigmai12h**2)))*rbind(c(Sigmai22h,-Sigmai12h),c(-Sigmai21h,Sigmai11h)) #--> error in original code here, needed to be as.numeric()
     Sigma.cand=s2.curr*Sigmah
     if(is.positive.definite(Sigma.cand)<1){Sigma.cand=nearPD(Sigma.cand)$mat}
     r.tilde=y-c(X.tilde%*%beta.tilde.curr)
@@ -112,10 +127,16 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
     }
     mu2=(SS.tilde+mu.prior*s2.curr/sigma.prior**2-mu1*Sigmai11h)/yWones
     mu.cand=c(mu1,mu2)
-    draw=mh.rho.1.beta0(mu.cand,Sigma.cand,lb,ub,y,Wy,ev,lndet.curr,s2.curr,X.beta.tilde.curr,g,rss,c(rho.curr,beta0.curr),mu.prior,sigma.prior,Ay.curr)
+    #mh.rho.1.beta0=function(mu.cand,Sigma.cand,lb,ub,y,Wy,y_nest, W_nest, ev,lndet.curr,s2.curr,X.beta.tilde.curr,g,rss,val.curr,mu.prior,sigma.prior,Ay.curr) {
+    draw=mh.rho.1.beta0(mu.cand,Sigma.cand,lb,ub,y,Wy, y_nest, W_nest, ev,lndet.curr,s2.curr,X.beta.tilde.curr,g,rss,c(rho.curr,beta0.curr),mu.prior,sigma.prior,Ay.curr)
     rho.curr=draw$value[1]
     beta0.curr=draw$value[2]
-    A.curr=Id-rho.curr*W
+    #ID: 78* 78 W[[1]]: 26 * 26
+    #A.curr=Id-rho.curr*W[[1]] 
+    print("here 6")
+    A.curr = diag(g/time_steps)- rho.curr*W[[1]]
+    print(A.curr)
+    print("here 77")
     lndet.curr=draw$lndet
     Ay.curr=draw$Ay
     rho.samples[i]=rho.curr
@@ -135,6 +156,15 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
     # Draw Sigma2
     s2.curr=1/rgamma(1,shape=g/2,rate=rss/2)
     sigma.samples[i]=sqrt(s2.curr)
+    print("here6")
+    print("solve(A.curr)")
+    print(solve(A.curr))
+    print("c(X%*%beta.samples[i,])+rnorm(g,mean=0,sd=sqrt(s2.curr)))")
+    print(c(X%*%beta.samples[i,])+rnorm(g,mean=0,sd=sqrt(s2.curr)))
+    print("beta.samples[i,]")
+    print(beta.samples[i,])
+  
+    # --> non conformable arguments...A.curr though has to be the size of singular W matrix, but beta.samples has to be 78 --> since pooling
     fitted.vals[[i]]=c(solve(A.curr)%*%(c(X%*%beta.samples[i,])+rnorm(g,mean=0,sd=sqrt(s2.curr))))
     res[[i]]=y-fitted.vals[[i]]
   }
@@ -176,6 +206,8 @@ nam.Bayes.1=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0){
   class(o) <- c("nam.Bayes")
   o
 }
+
+
 ################################################################################
 # functions in.space.2.rsd,in.space.2, and in.space.R check if (rho, Beta) in theta_rho x R -- page 205, step 3 first bullet point. 
 
@@ -272,7 +304,10 @@ mh.rho.R.beta0=function(mu.cand,Sigma.cand,R,W.list,Id,y,Wy,lndet.curr,s2.curr,X
   }
   A.cand=Id-Reduce("+", rho.cand.W.list)
   lndet.cand=determinant(A.cand)$modulus[1]
+  
+  #function goes here- this is the only thing we'd have to change. 
   Ay.cand=y-colSums((rho.cand*t(Wy)))
+  
   if(log(runif(1))< #accept based on uniform distribution.
      lndet.cand-lndet.curr  
      -(1/(2*s2.curr))*(sum(Ay.cand**2)-2*beta0.cand*sum(Ay.cand)-2*sum(Ay.cand*X.beta.tilde.curr)+g*beta0.cand**2+2*beta0.cand*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)-rss)   
@@ -294,22 +329,26 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
     nam.Bayes.1(y,X,W.list,mu.prior,Sigma.prior,N=N,burnin=burnin)
   } else {
     if(is.null(y)>0){stop("The response vector 'y' must not be empty.")}
-    if(is.vector(y)<1){stop("The response vector 'y' must be a vector.")}
-    if(is.numeric(y)<1){stop("The response vector 'y' must be numeric.")}
-    if(is.numeric(X)<1){stop("The covariance matrix 'X' must be numeric.")}
-    if(is.matrix(X)<1){stop("The covariance matrix 'X' must be a matrix.")}
-    if(min(sapply(W.list,is.numeric))<1){stop("The connectivity matrices 'W' must be numeric.")}
-    if(abs(length(y)-nrow(X))>.5){stop("Number of observations in 'X' must match length of 'y'.")}
-    g=length(y) # number of nodes 
-    R=length(W.list) # number of W matrices 
-    if(length(unique(g,sapply(W.list,nrow),sapply(W.list,ncol)))>1){stop("Order(s) of 'W' must match length of 'y'.")}
-    if(is.vector(mu.prior)<1){stop("The prior mean 'mu.prior' must be a vector.")}
-    if(is.numeric(mu.prior)<1){stop("The prior mean 'mu.prior' must be numeric.")}
-    if(is.matrix(Sigma.prior)<1){stop("The prior covariance matrix 'Sigma.prior' must be a matrix.")}
-    if(is.numeric(Sigma.prior)<1){stop("The prior covariance matrix 'Sigma.prior' must be numeric.")}
-    if(abs(length(mu.prior)-R)>.5){stop("Length of 'mu.prior' must match number of connectivity matrices 'W'.")}
-    if(length(unique(R,nrow(Sigma.prior),ncol(Sigma.prior)))>1){stop("Dimensions of 'Sigma.prior' must match number of connectivity matrices 'W'.")}
-    if(is.positive.definite(Sigma.prior)<1){stop("The prior covariance matrix 'Sigma.prior' must be positive-definite.")}
+    # if(is.vector(y)<1){stop("The response vector 'y' must be a vector.")}
+    # if(is.numeric(y)<1){stop("The response vector 'y' must be numeric.")}
+    # if(is.numeric(X)<1){stop("The covariance matrix 'X' must be numeric.")}
+    # if(is.matrix(X)<1){stop("The covariance matrix 'X' must be a matrix.")}
+    # if(min(sapply(W.list,is.numeric))<1){stop("The connectivity matrices 'W' must be numeric.")}
+    # if(abs(length(y)-nrow(X))>.5){stop("Number of observations in 'X' must match length of 'y'.")}
+    
+    #g=length(y) # number of nodes
+    g=length(y[[1]])
+    R=length(W.list) # number of W matrices --
+    
+    #CRTL+SHIFT+C
+    # if(length(unique(g,sapply(W.list,nrow),sapply(W.list,ncol)))>1){stop("Order(s) of 'W' must match length of 'y'.")}
+    # if(is.vector(mu.prior)<1){stop("The prior mean 'mu.prior' must be a vector.")}
+    # if(is.numeric(mu.prior)<1){stop("The prior mean 'mu.prior' must be numeric.")}
+    # if(is.matrix(Sigma.prior)<1){stop("The prior covariance matrix 'Sigma.prior' must be a matrix.")}
+    # if(is.numeric(Sigma.prior)<1){stop("The prior covariance matrix 'Sigma.prior' must be numeric.")}
+    # if(abs(length(mu.prior)-R)>.5){stop("Length of 'mu.prior' must match number of connectivity matrices 'W'.")}
+    # if(length(unique(R,nrow(Sigma.prior),ncol(Sigma.prior)))>1){stop("Dimensions of 'Sigma.prior' must match number of connectivity matrices 'W'.")}
+    # if(is.positive.definite(Sigma.prior)<1){stop("The prior covariance matrix 'Sigma.prior' must be positive-definite.")}
     if((N%%1==0)<1|N<1){stop("The number of desired posterior draws 'N' must be a positive integer.")}
     if((burnin%%1==0)<1|burnin<0){stop("The 'burnin' must be a non-negative integer.")}
     
@@ -328,8 +367,10 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
     X.tilde=X[,-1]
     XtXi=solve(t(X)%*%X) # transpose of X matrix mult. by X
     XtXiXt=XtXi%*%t(X) # transpose of X matrix mult. by X matrix mult. transpose X
-    M=Id-X%*%XtXiXt  # from equation 15 ----- page 185
-    yMy=sum(c(M%*%y)**2)
+    #M=Id-X%*%XtXiXt  # from equation 15 ----- page 185 --> never used 
+    #yMy=sum(c(M%*%y)**2) --> never used
+    
+    
     Wy=matrix(NA,g,R)
     tr.WW=matrix(NA,R,R)
     for(i in 1:R){
@@ -358,9 +399,9 @@ nam.Bayes=function(y,X,W.list,mu.prior,Sigma.prior,N=100,burnin=0) {
     }
     A.curr=Id-Reduce("+",rho.curr.W.list)
     lndet.curr=determinant(A.curr)$modulus[1]
+    
     Ay.curr=y-colSums((rho.curr*t(Wy)))
-    #print(X.tilde)
-    #print(beta.tilde.curr)
+    
     X.beta.tilde.curr=c(X.tilde%*%beta.tilde.curr)
     rss=sum(Ay.curr**2)-2*beta0.curr*sum(Ay.curr)-2*sum(Ay.curr*X.beta.tilde.curr)+g*beta0.curr**2+2*beta0.curr*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)
     
