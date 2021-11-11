@@ -162,7 +162,6 @@ tnamdata_mod_t <- function(formula, time_steps, center.y = FALSE) {
   #change data structure on W.list to list of lists, label 
   W.list<- append(temp,W.list)
   
-  time_steps <- 3
   lili<- list() ##list of lists
   first_index<- 0
   for (i in 1:(length(W.list)/time_steps)) {
