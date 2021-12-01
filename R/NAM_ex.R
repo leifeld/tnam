@@ -78,6 +78,7 @@ nam_formula <- y ~
 #class(friendship1)
 test1<- tnamdata_mod(nam_formula) ##data is in correct format now for betnam 
 
+
 fitted<- tnam(formula= nam_formula, mu.prior= mu.prior, Sigma.prior= Sigma.prior) 
 
 #look @ distributions of coeffeicents
@@ -154,7 +155,6 @@ mu.prior4=c(0,0); Sigma.prior4=26*diag(2) #-- attempt to fix X.tilde error
 
 fitted<- tnam(formula= formula4, mu.prior= mu.prior4, Sigma.prior= Sigma.prior4)
 
-
 #####
 #11.1.21- look @ covariate matrix X more, modify to take in multiple time points t 
 #input data formatting 
@@ -207,7 +207,9 @@ X2=matrix(rnorm(26*3),26,3)  #c(rep(1,26)
 rownames(X2) <- letters
 
 #build W2 W matrix
-W2<- list(as.numeric(matrix(rbinom(26*26,1,.5),26,26)), as.numeric(matrix(rbinom(26*26,1,.5),26,26)), as.numeric(matrix(rbinom(26*26,1,.5),26,26)))
+#W2<- list(as.numeric(matrix(rbinom(26*26,1,.5),26,26)), as.numeric(matrix(rbinom(26*26,1,.5),26,26)), as.numeric(matrix(rbinom(26*26,1,.5),26,26)))
+W2<- list(matrix(as.numeric(rbinom(26*26,1,.5)),26,26), matrix(as.numeric(rbinom(26*26,1,.5)),26,26), matrix(as.numeric(rbinom(26*26,1,.5)),26,26))
+
 names(W2)[[1]] <- "t1"
 names(W2)[[2]] <- "t2"
 names(W2)[[3]] <- "t3"
@@ -219,7 +221,7 @@ intercept_term<- ethnicity[5] # hacky way to do this-- sorry
 intercept_T<-list(intercept_term,intercept_term,intercept_term)
 
 form4<- delinquency[1:3] ~ covariate(as.data.frame(intercept_T), coefname = "intercept") +
-  covariate(alcohol, coefname = "alc") +
+  covariate(alcohol, coefname = "alc")+
   covariate(as.data.frame(X2), coefname = "X2") + 
   W_t(friendship[1:3]) + 
   W_t(W2)
@@ -287,13 +289,7 @@ W.list.in<- output_long$W.list[1:3] #this is what we really want
 mu.prior4=0; Sigma.prior4=26*diag(1)
 
 #modified to feed in both long and wide format! 
-nam.Bayes.1(y=y.in, y_nest= y_nest_in,X= X.in, W.list= W.list.in, W_nest= W_nest_in, mu.prior= mu.prior4,Sigma.prior=Sigma.prior4,N=100,burnin=0)
-  
-#--> error w/ dimensionality for resdiuals which I'm not sure how to fix! 
-
-
-
-
+nam.bayes1<- nam.Bayes.1(y=y.in, y_nest= y_nest_in,X= X.in, W.list= W.list.in, W_nest= W_nest_in, mu.prior= mu.prior4,Sigma.prior=Sigma.prior4,N=100,burnin=0)
 
 
 

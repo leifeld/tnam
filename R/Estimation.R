@@ -21,11 +21,13 @@ mh.rho.1.beta0=function(mu.cand,Sigma.cand,lb,ub,y,Wy,y_nest, W_nest, ev,lndet.c
   #Ay.cand=y-rho.cand*Wy
   Ay.cand= Ay.cand.function(y_nested= y_nest, rho.cand=rho.cand, W_nested=W_nest)
   #print(Ay.cand)
-  #function goes here 
-
+  #print("rho.cand")
+  #print(rho.cand)
+  #print("ev")
+  #print(ev)
   #print("log(1-rho.cand*ev)")
   #print(log(1-rho.cand*ev))
-  lndet.cand=sum(log(1-rho.cand*ev), na.rm = TRUE) #warning: NA's can be generated, okay to just remove??
+  lndet.cand=sum(log(1-rho.cand*ev)) #warning: NA's generated 
   if(log(runif(1))<
      lndet.cand-lndet.curr
      -(1/(2*s2.curr))*(sum(Ay.cand**2)-2*beta0.cand*sum(Ay.cand)-2*sum(Ay.cand*X.beta.tilde.curr)+g*beta0.cand**2+2*beta0.cand*sum(X.beta.tilde.curr)+sum(X.beta.tilde.curr**2)-rss)
@@ -62,12 +64,15 @@ nam.Bayes.1= function(y, y_nest,X,W.list,W_nest,mu.prior,Sigma.prior,N=100,burni
   # if((burnin%%1==0)<1|burnin<0){stop("The 'burnin' must be a non-negative integer.")}
   
   Id=diag(g)
+  print("g")
+  print(g)
   ones=rep(1,g)
   k=ncol(X)
   X.tilde=X[,-1] # X w.o intercept column
   XtXi=solve(t(X)%*%X)
   XtXiXt=XtXi%*%t(X)
   M=Id-X%*%XtXiXt
+  
   Wy=c(W[[1]]%*%y[1:26]) #this has to be subsetting Wi*yi --> testing purposes 1:26
   yWones=sum(Wy)
   yWWy=sum(Wy**2)
@@ -86,7 +91,7 @@ nam.Bayes.1= function(y, y_nest,X,W.list,W_nest,mu.prior,Sigma.prior,N=100,burni
   beta.tilde.curr=vals.start$coefficients[-1]
   s2.curr=sigma(vals.start)**2
   
-  A.curr=Id
+  A.curr=diag(g)
   lndet.curr=0
   Ay.curr=y
   #print("here 4")
@@ -134,7 +139,12 @@ nam.Bayes.1= function(y, y_nest,X,W.list,W_nest,mu.prior,Sigma.prior,N=100,burni
     #ID: 78* 78 W[[1]]: 26 * 26
     #A.curr=Id-rho.curr*W[[1]] 
     print("here 6")
-    A.curr = diag(g/time_steps)- rho.curr*W[[1]]
+    
+    W.bdiag<- vector()
+    for (i in 1: time_steps) {
+      W.bdiag<- append(W.bdiag, rho.curr*W[[i]])
+    }
+    A.curr = diag(g)- matrix(bdiag(W.bdiag),g, g)
     print(A.curr)
     print("here 77")
     lndet.curr=draw$lndet
